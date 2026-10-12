@@ -51,7 +51,7 @@ def evaluate_ragas(questions: list[str], answers: list[str],
     client_options = {"api_key": OPENAI_API_KEY}
     if OPENAI_ENDPOINT_URL:
         client_options["base_url"] = OPENAI_ENDPOINT_URL
-    evaluator_llm = ChatOpenAI(model=RAGAS_EVALUATOR_MODEL, **client_options)
+    evaluator_llm = ChatOpenAI(model=RAGAS_EVALUATOR_MODEL, max_retries=5, **client_options)
     evaluator_embeddings = HuggingFaceEmbeddings(
         model_name=RAGAS_EVALUATOR_EMBEDDING_MODEL,
         model_kwargs={"local_files_only": True},
@@ -63,12 +63,20 @@ def evaluate_ragas(questions: list[str], answers: list[str],
         "contexts": contexts,
         "ground_truth": ground_truths,
     })
+    eval_kwargs = {}
+    try:
+        from ragas.run_config import RunConfig
+        eval_kwargs["run_config"] = RunConfig(max_workers=2, max_retries=10, timeout=180)
+    except (ImportError, AttributeError):
+        pass
+
     result = evaluate(
         dataset,
         metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
         llm=evaluator_llm,
         embeddings=evaluator_embeddings,
         raise_exceptions=True,
+        **eval_kwargs,
     )
     df = result.to_pandas()
     metrics = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")

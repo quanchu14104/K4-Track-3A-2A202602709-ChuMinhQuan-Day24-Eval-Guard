@@ -25,6 +25,7 @@ def setup_presidio():
     Các recognizers mặc định đã có sẵn: EMAIL, PHONE_NUMBER (international), ...
     """
     from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, Pattern, PatternRecognizer
+    from presidio_analyzer.predefined_recognizers import EmailRecognizer, PhoneRecognizer
     from presidio_anonymizer import AnonymizerEngine
 
     cccd_recognizer = PatternRecognizer(
@@ -40,7 +41,8 @@ def setup_presidio():
     )
 
     registry = RecognizerRegistry()
-    registry.load_predefined_recognizers()
+    registry.add_recognizer(EmailRecognizer())
+    registry.add_recognizer(PhoneRecognizer())
     registry.add_recognizer(cccd_recognizer)
     registry.add_recognizer(phone_recognizer)
 
@@ -114,6 +116,9 @@ def setup_nemo_rails():
         rails.co    — câu từ chối Colang 1.0; built-in self-check flows được bật trong YAML
     """
     from nemoguardrails import RailsConfig, LLMRails
+    from nemoguardrails.llm.providers import register_llm_provider
+    from langchain_openai import ChatOpenAI
+    register_llm_provider("openai", ChatOpenAI)
     config = RailsConfig.from_path(GUARDRAILS_CONFIG_DIR)
     rails  = LLMRails(config)
     return rails
