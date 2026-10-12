@@ -8,7 +8,7 @@
 **Điểm:** 100 điểm bắt buộc + tối đa 10 bonus cho bài lab.
 
 **Repo đề bài:** [K4-Track-3A-Day24-Eval-Guard](https://github.com/VinUni-AI20k/K4-Track-3A-Day24-Eval-Guard).
-Repo bài nộp nhóm: `K4-L3-DAY24-TenNhom-Eval-Guard`.
+Repo bài nộp: `K4-Track-3A-2A202602709-ChuMinhQuan-Day24-Eval-Guard`.
 
 ## Bài lab này nói về cái gì?
 
