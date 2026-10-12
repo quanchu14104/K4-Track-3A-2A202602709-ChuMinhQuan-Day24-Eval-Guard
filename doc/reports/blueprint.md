@@ -2,7 +2,7 @@
 
 Nhóm: {{Tên nhóm}}
 
-Người phụ trách: {{Họ tên và MSSV}}
+Người phụ trách: Chu Minh Quân — 2A202602709.
 
 Đây là **đề xuất CI/CD**, không phải workflow đã được triển khai/chạy.
 Nguồn kết quả: artifacts/ragas_50q.json, judge_results.json, guard_results.json.

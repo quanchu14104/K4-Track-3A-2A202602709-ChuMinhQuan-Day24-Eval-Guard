@@ -251,7 +251,8 @@ def test_setup_preserves_metadata_and_does_not_call_pipeline_py(monkeypatch):
     monkeypatch.setitem(sys.modules,"src.m2_search",SimpleNamespace(HybridSearch=lambda:search))
     monkeypatch.setitem(sys.modules,"src.m3_rerank",SimpleNamespace(CrossEncoderReranker=lambda:reranker))
     monkeypatch.setitem(sys.modules,"src.m5_enrichment",SimpleNamespace(
-        enrich_chunks=lambda chunks:[SimpleNamespace(enriched_text="enriched",auto_metadata={"topic":"HR"})]))
+        enrich_chunks=lambda chunks,methods:[SimpleNamespace(
+            enriched_text="enriched",auto_metadata={"topic":"HR"},method="local_fallback")]))
     monkeypatch.setitem(sys.modules,"src.pipeline",SimpleNamespace(
         run=Mock(side_effect=AssertionError("Must not call pipeline.py"))))
     returned=setup_answers.build_pipeline()

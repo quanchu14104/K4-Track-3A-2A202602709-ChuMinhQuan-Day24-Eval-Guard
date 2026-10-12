@@ -191,7 +191,8 @@ def test_generation_records_provider_model_and_null_fallback(monkeypatch):
         "llm", "generation-provider-snapshot")
     assert client.chat.completions.create.call_args.kwargs["model"] == "generation-requested"
     client.chat.completions.create.side_effect = RuntimeError("generation failed")
-    assert setup_answers.run_query("Q", search, reranker, 3, client)[2:] == ("extractive_fallback", None)
+    with pytest.raises(RuntimeError, match="generation failed"):
+        setup_answers.run_query("Q", search, reranker, 3, client)
 
 
 def test_checker_really_uses_all_supplied_report_schemas(tmp_path, answers, capsys):

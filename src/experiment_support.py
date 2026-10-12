@@ -11,6 +11,19 @@ from pathlib import Path
 from config import JUDGE_MODEL, LATENCY_BUDGET_P95_MS
 
 
+def create_openai_client(*, timeout=None):
+    """Create an OpenAI-compatible client using the repository's local config."""
+    from openai import OpenAI
+    from config import OPENAI_API_KEY, OPENAI_ENDPOINT_URL
+
+    options = {"api_key": OPENAI_API_KEY}
+    if OPENAI_ENDPOINT_URL:
+        options["base_url"] = OPENAI_ENDPOINT_URL
+    if timeout is not None:
+        options["timeout"] = timeout
+    return OpenAI(**options)
+
+
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -108,8 +121,7 @@ Trả JSON: {"label": 0 hoặc 1, "reasoning": "giải thích ngắn theo tiêu 
 def judge_binary(question, answer, reference, *, client=None):
     """Provided bridge to 0/1 calibration. Never accepts human_label/human_note."""
     if client is None:
-        from openai import OpenAI
-        client = OpenAI()
+        client = create_openai_client()
     response = client.chat.completions.create(
         model=JUDGE_MODEL, temperature=0,
         response_format={"type": "json_object"},

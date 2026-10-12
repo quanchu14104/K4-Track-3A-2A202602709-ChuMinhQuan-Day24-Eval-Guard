@@ -54,12 +54,17 @@ giá trị ví dụ này làm report.
 `build_pipeline()` trả `(search, reranker, top_k)`.
 `run_query(q, search, reranker, top_k, client=None)` trả
 `(answer, contexts, generation_mode, generation_model)`. Client OpenAI được reuse qua 50 câu,
-không khởi tạo lại cho mỗi query. `generation_mode` là `llm` hoặc
-`extractive_fallback`; fallback khi không có key/contexts hoặc generation lỗi
-phải được mô tả trong phân tích.
+không khởi tạo lại cho mỗi query. Live setup yêu cầu API key, contexts và một
+generation thành công; lỗi không được biến thành extractive answer để tránh
+tạo artifact trông hợp lệ nhưng thiếu kết quả model. `generation_mode` là `llm`.
 `generation_model` ghi model identifier provider trả về nếu có, hoặc model ID
-đã truyền vào lời gọi generation; dùng `null` khi extractive fallback. Generation
-dùng `config.GENERATION_MODEL`, tách khỏi `config.JUDGE_MODEL`.
+đã truyền vào lời gọi generation. Generation dùng `config.GENERATION_MODEL`,
+tách khỏi `config.JUDGE_MODEL`.
+M5 có thể chạy explicit `local` mode (deterministic enrichment, không gọi model)
+hoặc `combined` mode (LLM). Với `combined`, structured output thiếu/không hợp lệ
+sau hai lượt dùng local fallback deterministic; log ghi số chunks fallback và
+`EnrichedChunk.method` đánh dấu `local_fallback`. Lỗi auth/API vẫn dừng, không
+đổi thành fallback.
 
 `artifacts/answers_50q.json` có đúng 50 id từ test set, question/distribution/ground_truth
 khớp nguồn. Không thay answer bằng ground_truth. Trước Phase A, xác nhận contexts

@@ -56,6 +56,25 @@ cần toolchain C++ của hệ điều hành khi build Annoy.
 Cài thành công qua pip chưa chứng minh đã tải model hoặc API kết nối được.
 Kiểm tra các lớp riêng biệt để biết lỗi nằm ở đâu:
 
+Tạo `.env` cục bộ từ `.env.example` và tự điền `OPENAI_API_KEY`; không commit
+hoặc chia sẻ file này. Có thể đặt `OPENAI_ENDPOINT_URL` cho endpoint tương thích
+OpenAI. Các vai trò generation, judge, M5 enrichment và RAGAS LLM evaluator
+lần lượt dùng `GENERATION_MODEL`, `JUDGE_MODEL`, `LLM_MODEL` và
+`RAGAS_EVALUATOR_MODEL`. RAGAS embeddings dùng `RAGAS_EVALUATOR_EMBEDDING_MODEL`
+như model Sentence Transformers chạy local; mặc định là `BAAI/bge-m3`, phải
+được tải/cached trước khi chạy offline. Metadata ghi các model IDs thực tế đã
+cấu hình, gồm embedding model local.
+
+M5 dùng `M5_ENRICHMENT_MODE=combined` để gọi evaluator chat theo từng chunk,
+hoặc `M5_ENRICHMENT_MODE=local` để dùng deterministic local enrichment và
+không gọi API cho 107 chunks của corpus này. Chế độ local được log/đánh dấu
+riêng; API credential/transport failures trong các chế độ gọi model vẫn dừng.
+
+Với 9router đã xác thực được trong môi trường này, các biến chat có thể cùng
+đặt thành `openrouter/nvidia/nemotron-3-super-120b-a12b:free`; đặt
+`RAGAS_EVALUATOR_EMBEDDING_MODEL=BAAI/bge-m3` để tránh phụ thuộc API embeddings
+từ xa. Model availability/rate limits tùy endpoint và có thể thay đổi.
+
 ```bash
 python -m pip check
 python -c "import ragas, nemoguardrails, presidio_analyzer, spacy; print('imports OK')"

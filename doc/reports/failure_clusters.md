@@ -2,7 +2,7 @@
 
 Nhóm: {{Tên nhóm}}
 
-Người phụ trách: {{Họ tên và MSSV}}
+Người phụ trách: Chu Minh Quân — 2A202602709.
 
 Nguồn: `artifacts/ragas_50q.json`; run timestamp: {{created_at}}.
 Generation mode/fallback và điều kiện chạy: {{Điều kiện thực tế}}.

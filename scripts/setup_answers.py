@@ -43,7 +43,9 @@ def build_pipeline():
     from src.m2_search import HybridSearch
     from src.m3_rerank import CrossEncoderReranker
     from src.m5_enrichment import enrich_chunks
-    from config import RERANK_TOP_K
+    from config import M5_ENRICHMENT_MODE, RERANK_TOP_K
+    if M5_ENRICHMENT_MODE not in {"combined", "local"}:
+        raise ValueError("M5_ENRICHMENT_MODE must be 'combined' or 'local'.")
 
     print("\n[1/3] Chunking + enriching documents...")
     t0 = time.time()
@@ -57,14 +59,20 @@ def build_pipeline():
                 "metadata": {**child.metadata, "parent_id": child.parent_id},
             })
 
-    enriched = enrich_chunks(all_chunks)
+    enriched = enrich_chunks(all_chunks, methods=[M5_ENRICHMENT_MODE])
     if enriched:
         if len(enriched) != len(all_chunks):
             raise ValueError("enrich_chunks must preserve chunk count/order; see doc/PIPELINE_INTERFACE.md")
+        fallback_count = sum("local_fallback" in e.method for e in enriched)
         all_chunks = [{"text": e.enriched_text,
                        "metadata": {**original["metadata"], **e.auto_metadata}}
                       for original, e in zip(all_chunks, enriched)]
         print(f"  ✓ Enriched {len(enriched)} chunks ({time.time()-t0:.1f}s)")
+        if fallback_count:
+            print(
+                f"  ⚠️  Deterministic local M5 fallback used for "
+                f"{fallback_count}/{len(enriched)} chunks."
+            )
     else:
         print(f"  ✓ Using {len(all_chunks)} raw chunks (M5 not implemented or no API key)")
 
@@ -84,32 +92,34 @@ def build_pipeline():
 
 def run_query(q: str, search, reranker, top_k: int, client=None) -> tuple[str, list[str], str, str | None]:
     from config import OPENAI_API_KEY
+    from src.experiment_support import create_openai_client
 
     results = search.search(q)
     docs    = [{"text": r.text, "score": r.score, "metadata": r.metadata} for r in results]
     reranked = reranker.rerank(q, docs, top_k=top_k)
     contexts = [r.text for r in reranked] if reranked else [r.text for r in results[:3]]
 
-    if (OPENAI_API_KEY or client is not None) and contexts:
-        try:
-            if client is None:
-                from openai import OpenAI
-                client = OpenAI()
-            ctx = "\n\n".join(contexts)
-            resp = client.chat.completions.create(
-                model=GENERATION_MODEL,
-                messages=[
-                    {"role": "system", "content": "Trả lời CHỈ dựa trên context. Nếu không có → nói 'Không tìm thấy.'"},
-                    {"role": "user",   "content": f"Context:\n{ctx}\n\nCâu hỏi: {q}"},
-                ],
-            )
-            reported_model = getattr(resp, "model", None)
-            used_model = reported_model if isinstance(reported_model, str) and reported_model.strip() else GENERATION_MODEL
-            return resp.choices[0].message.content, contexts, "llm", used_model
-        except Exception as e:
-            print(f"  ⚠️  LLM generation failed: {e}")
+    if not contexts:
+        raise RuntimeError(f"Search returned no contexts for question: {q!r}.")
+    if not OPENAI_API_KEY and client is None:
+        raise RuntimeError("OPENAI_API_KEY is required for live answer generation.")
+    if client is None:
+        client = create_openai_client()
 
-    return (contexts[0] if contexts else "Không tìm thấy thông tin."), contexts, "extractive_fallback", None
+    ctx = "\n\n".join(contexts)
+    resp = client.chat.completions.create(
+        model=GENERATION_MODEL,
+        messages=[
+            {"role": "system", "content": "Trả lời CHỈ dựa trên context. Nếu không có → nói 'Không tìm thấy.'"},
+            {"role": "user",   "content": f"Context:\n{ctx}\n\nCâu hỏi: {q}"},
+        ],
+    )
+    content = resp.choices[0].message.content
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("The generation endpoint returned an empty answer.")
+    reported_model = getattr(resp, "model", None)
+    used_model = reported_model if isinstance(reported_model, str) and reported_model.strip() else GENERATION_MODEL
+    return content, contexts, "llm", used_model
 
 
 def main(argv=None):
@@ -118,6 +128,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.live:
         parser.error("Generation/enrichment may call APIs. Pass --live after completing pre-class setup.")
+    from config import OPENAI_API_KEY
+    if not OPENAI_API_KEY:
+        parser.error("OPENAI_API_KEY is required for live generation/enrichment.")
     print("=" * 60)
     print("K4 / TRACK 3A SETUP — Generating answers for 50 questions")
     print("=" * 60)
@@ -138,11 +151,10 @@ def main(argv=None):
 
     print(f"\nRunning {len(test_set)} queries...")
     answers = []
-    from config import OPENAI_API_KEY
     client = None
     if OPENAI_API_KEY:
-        from openai import OpenAI
-        client = OpenAI()
+        from src.experiment_support import create_openai_client
+        client = create_openai_client()
     t_start = time.time()
 
     for i, item in enumerate(test_set):

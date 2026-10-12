@@ -2,7 +2,7 @@
 
 Nhóm: {{Tên nhóm}}
 
-Người phụ trách: {{Họ tên và MSSV}}
+Người phụ trách: Chu Minh Quân — 2A202602709.
 
 Nguồn: `artifacts/judge_results.json`; run timestamp: {{created_at}}.
 Models generation/judge: {{metadata.models.generation và metadata.models.judge}}.
